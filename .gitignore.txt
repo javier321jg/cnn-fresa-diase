@@ -1,0 +1,12 @@
+# En Windows
+echo # Python > .gitignore
+echo venv/ >> .gitignore
+echo __pycache__/ >> .gitignore
+echo *.pyc >> .gitignore
+echo *.pyo >> .gitignore
+echo *.pyd >> .gitignore
+echo .Python >> .gitignore
+echo *.pt >> .gitignore
+echo uploads/ >> .gitignore
+echo output/ >> .gitignore
+echo runs/ >> .gitignore

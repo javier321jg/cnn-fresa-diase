@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - Detección de Enfermedades</title>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <link rel="stylesheet" href="/static/assets/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css">
+  <link rel="stylesheet" href="/static/assets/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
+  <link rel="stylesheet" href="/static/assets/plugins/jqvmap/jqvmap.min.css">
+  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+  <link rel="stylesheet" href="/static/assets/plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
+  <link rel="stylesheet" href="/static/assets/plugins/daterangepicker/daterangepicker.css">
+  <link rel="stylesheet" href="/static/assets/plugins/summernote/summernote-bs4.min.css">
+
+  <style>
+    .disease-info { margin-top: 1rem; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .confidence-text { color: rgba(255,255,255,0.8); font-size: 0.9rem; }
+    .info-section {
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #007bff;
+      margin-bottom: 15px;
+      transition: all 0.3s ease;
+    }
+    .info-section:hover { transform: translateX(5px); }
+    .info-section h5 { color: #007bff; margin-bottom: 10px; font-weight: 600; }
+    .detection-image {
+      width: 100%;
+      max-width: 800px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    .detection-image:hover { transform: scale(1.02); }
+    .upload-section {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .custom-file-upload {
+      border: 2px dashed #007bff;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .custom-file-upload:hover { background: rgba(0,123,255,0.1); }
+    .disease-card {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.5s forwards;
+    }
+    @keyframes fadeInUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body class="sidebar-mini">
+  {% include 'navigation.html' %}
+  {% include 'sidebar.html' %}
+
+  <div class="content-wrapper">
+    <!-- Header -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0 text-dark">Detección de Enfermedades en Fresas</h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/">Inicio</a></li>
+              <li class="breadcrumb-item active">Análisis de Imagen</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row">
+          <!-- Upload Section -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header bg-primary">
+                <h3 class="card-title text-white">
+                  <i class="fas fa-upload mr-2"></i>Cargar Imagen
+                </h3>
+              </div>
+              <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                  <div class="custom-file-upload mb-3">
+                    <input type="file" name="file" id="fileInput" style="display: none;" 
+                           accept=".jpg,.jpeg,.png" required onchange="showFileName(this)">
+                    <label for="fileInput">
+                      <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                      <br>
+                      Arrastra o selecciona una imagen
+                    </label>
+                    <div id="fileName" class="mt-2 text-muted"></div>
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-lg btn-block">
+                    <i class="fas fa-microscope mr-2"></i>Analizar Imagen
+                  </button>
+                </form>
+
+                <div class="mt-4">
+                  <button onclick="startWebcam()" class="btn btn-info btn-block">
+                    <i class="fas fa-camera mr-2"></i>Usar Webcam
+                  </button>
+                  <button onclick="startRTSP()" class="btn btn-success btn-block">
+                    <i class="fas fa-video mr-2"></i>Conectar Cámara RTSP
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results Section -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header bg-primary">
+                <h3 class="card-title text-white">
+                  <i class="fas fa-search mr-2"></i>Resultados
+                </h3>
+              </div>
+              <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">
+                  <i class="fas fa-exclamation-circle mr-2"></i>{{ error }}
+                </div>
+                {% endif %}
+
+                {% if image_path %}
+                <div class="text-center mb-4">
+                  <img src="{{ url_for('detect', filename=image_path) }}?t={{ timestamp }}"
+                       class="detection-image" alt="Resultado del análisis">
+                </div>
+
+                <div id="resultsContainer">
+                  <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="sr-only">Analizando...</span>
+                    </div>
+                    <p class="mt-2">Procesando resultados...</p>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  {% include 'footer.html' %}
+
+  <!-- Scripts -->
+  <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/assets/js/adminlte.min.js"></script>
+
+  <script>
+    function showFileName(input) {
+      const fileName = input.files[0]?.name;
+      document.getElementById('fileName').textContent = fileName || '';
+    }
+
+    function startWebcam() {
+      window.location.href = "/webcam_feed";
+    }
+
+    function startRTSP() {
+      window.location.href = "/rtsp_feed";
+    }
+  </script>
+
+  {% if image_path %}
+  <script src="/static/assets/js/detections.js?t={{ timestamp }}"></script>
+  <script src="/static/assets/js/diseases_info.js?t={{ timestamp }}"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const resultsContainer = document.getElementById('resultsContainer');
+      
+      // Verificar si los datos están disponibles
+      if (typeof detections !== 'undefined' && typeof diseasesInfo !== 'undefined') {
+        let html = '';
+        
+        // Filtrar y ordenar detecciones por confianza
+        const uniqueDetections = Object.values(
+          detections.reduce((acc, det) => {
+            if (!acc[det.class] || det.confidence > acc[det.class].confidence) {
+              acc[det.class] = det;
+            }
+            return acc;
+          }, {})
+        ).sort((a, b) => b.confidence - a.confidence);
+
+        // Generar HTML para cada detección
+        uniqueDetections.forEach((detection, index) => {
+          if (detection.class.toLowerCase() === 'hoja sana') return;
+          
+          const info = diseasesInfo[detection.class];
+          if (!info) return;
+
+          html += `
+            <div class="disease-card" style="animation-delay: ${index * 0.2}s">
+              <div class="card mb-4">
+                <div class="card-header bg-primary">
+                  <h4 class="text-white mb-1">
+                    <i class="fas fa-bug mr-2"></i>${detection.class}
+                  </h4>
+                  <p class="confidence-text mb-0">
+                    <i class="fas fa-chart-line mr-2"></i>
+                    Confianza: ${(detection.confidence * 100).toFixed(2)}%
+                  </p>
+                </div>
+                <div class="card-body">
+                  ${Object.entries(info)
+                    .map(([key, value]) => `
+                      <div class="info-section">
+                        <h5><i class="fas fa-chevron-right mr-2"></i>${key}</h5>
+                        <div>${value}</div>
+                      </div>
+                    `).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        // Mostrar resultados o mensaje si no hay detecciones
+        resultsContainer.innerHTML = html || `
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle mr-2"></i>
+            No se detectaron enfermedades en la imagen
+          </div>
+        `;
+      } else {
+        resultsContainer.innerHTML = `
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            No se pudo cargar la información de las detecciones
+          </div>
+        `;
+      }
+    });
+  </script>
+  {% endif %}
+</body>
+</html>

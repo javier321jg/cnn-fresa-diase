@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - Detección de Enfermedades</title>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <link rel="stylesheet" href="/static/assets/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css">
+  <link rel="stylesheet" href="/static/assets/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
+  <link rel="stylesheet" href="/static/assets/plugins/jqvmap/jqvmap.min.css">
+  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+  <link rel="stylesheet" href="/static/assets/plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
+  <link rel="stylesheet" href="/static/assets/plugins/daterangepicker/daterangepicker.css">
+  <link rel="stylesheet" href="/static/assets/plugins/summernote/summernote-bs4.min.css">
+
+  <style>
+    .disease-info { margin-top: 1rem; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .stats-card {
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    .stats-card:hover { transform: translateY(-5px); }
+    .chart-card {
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body class="sidebar-mini">
+  {% include 'navigation.html' %}
+  {% include 'sidebar.html' %}
+
+  <div class="content-wrapper">
+    <!-- Header -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0 text-dark">Dashboard de Detección de Enfermedades</h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/">Inicio</a></li>
+              <li class="breadcrumb-item active">Dashboard</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <!-- Estadísticas -->
+        <div class="row">
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-info stats-card">
+              <div class="inner">
+                <h3 id="totalAnalysis">0</h3>
+                <p>Total Análisis</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-microscope"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-success stats-card">
+              <div class="inner">
+                <h3 id="healthyPlants">0</h3>
+                <p>Plantas Sanas</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-leaf"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning stats-card">
+              <div class="inner">
+                <h3 id="affectedPlants">0</h3>
+                <p>Plantas Afectadas</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger stats-card">
+              <div class="inner">
+                <h3 id="totalDiseases">0</h3>
+                <p>Total Enfermedades</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-bug"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card chart-card">
+              <div class="card-header bg-primary">
+                <h3 class="card-title text-white">
+                  <i class="fas fa-chart-line mr-2"></i>Detecciones por Día
+                </h3>
+              </div>
+              <div class="card-body">
+                <canvas id="detectionsChart" height="300"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card chart-card">
+              <div class="card-header bg-primary">
+                <h3 class="card-title text-white">
+                  <i class="fas fa-chart-pie mr-2"></i>Distribución de Enfermedades
+                </h3>
+              </div>
+              <div class="card-body">
+                <canvas id="diseasesChart" height="300"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de Enfermedades -->
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header bg-primary">
+                <h3 class="card-title text-white">
+                  <i class="fas fa-table mr-2"></i>Detalle de Enfermedades
+                </h3>
+              </div>
+              <div class="card-body table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Enfermedad</th>
+                      <th>Total Detecciones</th>
+                      <th>Confianza Promedio</th>
+                      <th>Última Detección</th>
+                    </tr>
+                  </thead>
+                  <tbody id="diseasesTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  {% include 'footer.html' %}
+
+  <!-- Scripts -->
+  <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/assets/js/adminlte.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    // Función para actualizar el dashboard
+    async function updateDashboard() {
+      try {
+        const [generalStats, diseaseStats, history] = await Promise.all([
+          fetch('/api/stats/general').then(r => r.json()),
+          fetch('/api/stats/diseases').then(r => r.json()),
+          fetch('/api/detections/history').then(r => r.json())
+        ]);
+
+        // Actualizar estadísticas
+        document.getElementById('totalAnalysis').textContent = generalStats.total_detections;
+        document.getElementById('healthyPlants').textContent = generalStats.healthy_plants;
+        document.getElementById('affectedPlants').textContent = generalStats.affected_plants;
+        document.getElementById('totalDiseases').textContent = generalStats.total_diseases;
+
+        // Gráfico de detecciones diarias
+        const detectionsCtx = document.getElementById('detectionsChart').getContext('2d');
+        new Chart(detectionsCtx, {
+          type: 'line',
+          data: {
+            labels: history.map(h => h.date),
+            datasets: [{
+              label: 'Detecciones',
+              data: history.map(h => h.total),
+              borderColor: '#17a2b8',
+              tension: 0.1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+
+        // Gráfico de distribución de enfermedades
+        const diseasesCtx = document.getElementById('diseasesChart').getContext('2d');
+        new Chart(diseasesCtx, {
+          type: 'pie',
+          data: {
+            labels: Object.keys(diseaseStats),
+            datasets: [{
+              data: Object.values(diseaseStats).map(d => d.total),
+              backgroundColor: ['#17a2b8', '#28a745', '#ffc107', '#dc3545']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+
+        // Actualizar tabla
+        const tbody = document.getElementById('diseasesTableBody');
+        tbody.innerHTML = '';
+        Object.entries(diseaseStats).forEach(([name, data]) => {
+          const lastDetection = new Date(data.detections[data.detections.length - 1].date);
+          tbody.innerHTML += `
+            <tr>
+              <td><i class="fas fa-bug mr-2"></i>${name}</td>
+              <td><span class="badge badge-primary">${data.total}</span></td>
+              <td><span class="badge badge-info">${(data.avg_confidence * 100).toFixed(1)}%</span></td>
+              <td>${lastDetection.toLocaleDateString()}</td>
+            </tr>
+          `;
+        });
+      } catch (error) {
+        console.error('Error actualizando dashboard:', error);
+      }
+    }
+
+    // Inicializar y actualizar cada 30 segundos
+    document.addEventListener('DOMContentLoaded', () => {
+      updateDashboard();
+      setInterval(updateDashboard, 30000);
+    });
+  </script>
+</body>
+</html>
